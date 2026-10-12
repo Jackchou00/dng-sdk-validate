@@ -1,0 +1,49 @@
+# ===========================================================================
+# Adobe DNG SDK 1.7.1 —— 本仓库只追踪构建 dng_validate 所需的源码与工程文件
+# 被忽略的文件全部保留在本地磁盘，只是不进入 git。
+# ===========================================================================
+
+# --- 体积过大的官方测试样本（只保留 CI 冒烟测试用的小样本）-----------------
+sample_files/01_jxl_linear_raw_integer.dng
+sample_files/03_jxl_bayer_raw_integer.dng
+sample_files/04_PGTM2_per_profile.dng
+sample_files/09_ImageSequenceInfo_1_of_3.dng
+sample_files/10_ImageSequenceInfo_2_of_3.dng
+sample_files/11_ImageSequenceInfo_3_of_3.dng
+sample_files/12_ImageStats_WeightedAverage.dng
+sample_files/13_ImageStats_Several.dng
+
+# --- PDF 文档（体积大，规范请从 Adobe 官网获取）----------------------------
+*.pdf
+
+# --- 与构建无关的第三方测试数据 / 内部文件 ---------------------------------
+libjxl/libjxl/third_party/brotli/js/
+libjxl/prune.txt
+libjxl/INTEGRATION_RUNBOOK.md
+
+# --- 构建产物与中间文件 -----------------------------------------------------
+dng_sdk/targets/
+dng_sdk/projects/mac/build/
+dng_sdk/projects/win/dng_validate/Validate*/
+libjxl/client_projects/mac/build/
+libjxl/client_projects/win/x64_*/
+libjxl/client_projects/win/ARM64_*/
+libjxl/client_projects/win/Win32_*/
+xmp/toolkit/public/libraries/
+xmp/toolkit/XMPCore/build/*/build/
+xmp/toolkit/XMPFiles/build/*/build/
+xmp/toolkit/XMPCore/build/*/x64_*/
+xmp/toolkit/XMPFiles/build/*/x64_*/
+xmp/toolkit/XMPCore/build/*/ARM64_*/
+xmp/toolkit/XMPFiles/build/*/ARM64_*/
+*.dir/
+*.o
+*.obj
+*.dSYM/
+DerivedData/
+
+# --- 编辑器 / 操作系统 ------------------------------------------------------
+.DS_Store
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/

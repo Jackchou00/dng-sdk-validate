@@ -1,0 +1,130 @@
+Welcome to the Digital Negative Software Development Kit (DNG SDK)
+
+This package comes with C++ source code for the DNG SDK (see
+dng_sdk/source). This code has been tested using C++14 and C++17
+language versions with various compilers on x64, arm32, and arm64
+architectures.
+
+This package also includes some project files for building a
+command-line utility named "dng_validate" on macOS and Windows (see
+dng_sdk/projects). These project files have been tested using the
+following compilers:
+
+  macOS: Xcode 12.4 thru Xcode 26
+
+  Windows: Visual Studio 2022 (17.3.5) + clang
+
+    The clang tools are available as an optional component in the
+    Visual Studio installer.
+
+----------------------------------------------------------------------
+
+Instructions to build dng_validate:
+
+  macOS:
+
+    - Open dng_sdk/projects/mac/dng_validate.xcodeproj
+    
+    - Select either "dng_validate debug" or "dng_validate release" 
+      from the Scheme dropdown menu
+      
+    - Build
+
+  Windows:
+
+    - Open dng_sdk/projects/win/dng_validate.sln
+
+    - Select "Validate Debug" or "Validate Release" from the
+      Configuration dropdown menu
+
+    - Build
+
+----------------------------------------------------------------------
+
+Dependencies:
+
+This distribution of the SDK includes the following libraries and
+additional dependencies:
+
+  libjpeg for JPEG support
+    - see JPEG_ReadMe.txt for details
+
+  libjxl for JPEG XL support
+    - see JXL_ReadMe.txt for details
+    - includes brotli and highway dependencies
+
+  XMP SDK for XMP support
+    - see XMP_ReadMe.txt for details
+    - includes boost, expat, and zlib dependencies
+
+----------------------------------------------------------------------
+
+Release Notes / Changelog:
+
+1.7.1 2724 September 8, 2026
+
+    - RGB Table fixes.
+
+    - Fix for crash on exit.
+
+    - Big table namespace work.
+
+    - EncodeDelta fixes.
+
+    - AVIF/HEIC/HEIF c2pa fallback logic.
+
+    - Vulnerability issue fixes.
+
+1.7.1 2652 July 14, 2026
+
+    - Padded XMP packet fixes.
+
+    - Vulnerability issue fixes.
+
+1.7.1 2611 June 9, 2026
+
+    - TIFF and ARW read fixes.
+
+    - EXR support items.
+
+    - JXL c2pa manifest detection fixes.
+
+    - Vulnerability issue fixes.
+
+1.7.1 2573 May 12, 2026
+
+    - Hasselblad FFF format fixes.
+
+    - TIFF c2pa tag parsing fixes.
+
+    - Vulnerability issue fixes.
+
+1.7.1 2536 April 14, 2026
+
+    - Vulnerability issue fixes.
+
+    - Low-temperature White Balance work.
+
+    - Minor fixes and cleanups.
+
+1.7.1 2502 March 3, 2026
+
+    - Vulnerability issue fixes.
+
+    - JXL library updates.
+
+    - Minor fixes and cleanups.
+
+1.7.1 2471 January 29, 2026
+
+    - Vulnerability issue fixes.
+
+1.7.1 2410 November 17, 2025
+
+    - Vulnerability issue fixes.
+
+    - Other minor bug fixes.
+
+    - Add version and build numbers to dng_flags.h.
+
+----------------------------------------------------------------------
