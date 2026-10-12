@@ -150,6 +150,20 @@ jobs:
             -property installationPath
           if ($clang) { Write-Host "ClangCL toolset OK: $clang" }
           else { Write-Host "::warning::未检测到 ClangCL 工具集组件" }
+
+          # XMP 工程没有显式指定 PlatformToolset：裸跑 msbuild 时 VisualStudioVersion
+          # 为空，MSBuild 会回退到 VS2010(v100) 并报 MSB8020。这里探测显式指定后的取值。
+          Write-Host "--- PlatformToolset 探测（XMPCoreStatic.vcxproj）---"
+          $proj = "xmp\toolkit\XMPCore\build\CMake64Static_VC16\XMPCoreStatic.vcxproj"
+          $a = & msbuild $proj -nologo -p:Configuration=Release -p:Platform=x64 -getProperty:PlatformToolset 2>&1
+          Write-Host "  未指定 VisualStudioVersion -> $a"
+          $b = & msbuild $proj -nologo -p:Configuration=Release -p:Platform=x64 -p:VisualStudioVersion=17.0 -getProperty:PlatformToolset 2>&1
+          Write-Host "  指定 VisualStudioVersion=17.0 -> $b"
+
+          Write-Host "--- XMPFilesStatic.vcxproj ---"
+          $proj2 = "xmp\toolkit\XMPFiles\build\CMake64Static_VC16\XMPFilesStatic.vcxproj"
+          $c = & msbuild $proj2 -nologo -p:Configuration=Release -p:Platform=x64 -p:VisualStudioVersion=17.0 -getProperty:PlatformToolset 2>&1
+          Write-Host "  指定 VisualStudioVersion=17.0 -> $c"
           exit 0
 
       - name: Build
@@ -159,12 +173,14 @@ jobs:
             -m `
             -p:Configuration="Validate Release" `
             -p:Platform=x64 `
+            -p:VisualStudioVersion=17.0 `
             -v:minimal `
             -nologo `
             -flp:logfile=msbuild-full.log`;verbosity=diagnostic
           if ($LASTEXITCODE -ne 0) {
             Write-Host "::group::编译错误"
-            Select-String -Path msbuild-full.log -Pattern "error " | Select-Object -First 60 | ForEach-Object { $_.Line }
+            Select-String -Path msbuild-full.log -Pattern ":\s*error\s+[A-Z]+[0-9]+" |
+              Select-Object -First 60 | ForEach-Object { $_.Line.Trim() }
             Write-Host "::endgroup::"
             exit $LASTEXITCODE
           }

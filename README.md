@@ -131,7 +131,10 @@ xcodebuild \
 工程使用 `ClangCL` 工具集，XMP 工程用默认 MSVC 工具集）。
 
 ```bat
-msbuild dng_sdk\projects\win\dng_validate.sln -m -p:Configuration="Validate Release" -p:Platform=x64
+:: 建议在 VS2022 的 “Developer Command Prompt / x64 Native Tools” 里执行，
+:: 或者显式指定 VS 版本 —— XMP 的两个工程没有写死 PlatformToolset，
+:: 裸跑 msbuild 时 VisualStudioVersion 为空会回退到 VS2010(v100) 并报 MSB8020。
+msbuild dng_sdk\projects\win\dng_validate.sln -m -p:Configuration="Validate Release" -p:Platform=x64 -p:VisualStudioVersion=17.0
 :: 产物：dng_sdk\targets\win\release64_x64\dng_validate.exe
 ```
 
