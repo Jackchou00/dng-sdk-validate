@@ -1,0 +1,287 @@
+name: Build dng_validate
+
+# 触发方式：
+#   - push 到 main / PR   -> 只构建 + 冒烟测试（产出 artifact）
+#   - push tag v*         -> 构建 + 冒烟测试 + 发布 Release
+#   - 手动 workflow_dispatch 且填写 release_tag -> 同上（Release 用该 tag）
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '若要发布 Release，填写 tag（例如 v1.7.1）；留空则只构建'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DNG_SDK_VERSION: '1.7.1'
+  DNG_SDK_BUILD: '2724'
+
+jobs:
+  # ==========================================================================
+  # macOS：用官方 Xcode 工程构建通用二进制（arm64 + x86_64）
+  # 注意：该工程没有共享 scheme，只有 target "dng_validate release"（configuration 名是 Default）
+  # ==========================================================================
+  macos:
+    name: macOS (universal)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project dng_sdk/projects/mac/dng_validate.xcodeproj
+
+      - name: Build
+        run: |
+          set -o pipefail
+          set +e
+          xcodebuild \
+            -project dng_sdk/projects/mac/dng_validate.xcodeproj \
+            -target "dng_validate release" \
+            -configuration Default \
+            build > xcodebuild.log 2>&1
+          rc=$?
+          set -e
+          tail -n 40 xcodebuild.log
+          if [ $rc -ne 0 ]; then
+            echo "::group::编译错误"
+            grep -n "error:" xcodebuild.log | head -n 60 || true
+            echo "::endgroup::"
+            exit $rc
+          fi
+          echo "::group::编译警告统计"
+          grep -c "warning:" xcodebuild.log || true
+          echo "::endgroup::"
+
+      - name: Locate binary
+        id: locate
+        run: |
+          settings=$(xcodebuild \
+            -project dng_sdk/projects/mac/dng_validate.xcodeproj \
+            -target "dng_validate release" \
+            -configuration Default \
+            -showBuildSettings 2>/dev/null)
+          dir=$(printf '%s\n' "$settings" | awk -F' = ' '/^ *TARGET_BUILD_DIR =/{print $2; exit}')
+          name=$(printf '%s\n' "$settings" | awk -F' = ' '/^ *FULL_PRODUCT_NAME =/{print $2; exit}')
+          bin="$dir/$name"
+          test -x "$bin"
+          echo "binary=$bin" >> "$GITHUB_OUTPUT"
+          ls -l "$bin"
+          file "$bin"
+          echo "archs: $(lipo -archs "$bin")"
+          lipo -archs "$bin" | grep -q "x86_64"
+          lipo -archs "$bin" | grep -q "arm64"
+
+      - name: Smoke test
+        run: |
+          bin="${{ steps.locate.outputs.binary }}"
+
+          echo "--- 1) 无参数应打印版本与用法，退出码 1 ---"
+          set +e
+          out=$("$bin" 2>&1)
+          rc=$?
+          set -e
+          printf '%s\n' "$out"
+          test $rc -eq 1
+          printf '%s\n' "$out" | grep -q "dng_validate, version $DNG_SDK_VERSION"
+
+          echo "--- 2) 普通 DNG 校验 ---"
+          "$bin" sample_files/05_PGTM2_unsigned8.dng | tee smoke-1.txt
+          grep -q "Validation complete" smoke-1.txt
+
+          echo "--- 3) JPEG XL 压缩 DNG 校验（验证 libjxl 链接与解码）---"
+          "$bin" sample_files/02_jxl_linear_raw_float.dng | tee smoke-2.txt
+          grep -q "Validation complete" smoke-2.txt
+
+      - name: Package
+        run: |
+          bin="${{ steps.locate.outputs.binary }}"
+          mkdir -p dist
+          cp "$bin" dist/dng_validate
+          cp LICENSE.txt dist/
+          cp README.md dist/
+          "$bin" 2>&1 | head -n 5 > dist/VERSION.txt || true
+          cd dist && zip -r ../dng_validate-macos-universal.zip . && cd ..
+          unzip -l dng_validate-macos-universal.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal
+          path: dng_validate-macos-universal.zip
+          if-no-files-found: error
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # Windows x64：用官方 VS 解决方案构建（dng_validate / jxl / brotli / highway 使用 ClangCL）
+  # ==========================================================================
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Show toolchain
+        shell: pwsh
+        run: |
+          msbuild -version
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          Write-Host "--- 是否装有 ClangCL 工具集（dng_validate/jxl 工程需要）---"
+          $clang = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset `
+            -property installationPath
+          if ($clang) { Write-Host "ClangCL toolset OK: $clang" }
+          else { Write-Host "::warning::未检测到 ClangCL 工具集组件" }
+          exit 0
+
+      - name: Build
+        shell: pwsh
+        run: |
+          msbuild dng_sdk\projects\win\dng_validate.sln `
+            -m `
+            -p:Configuration="Validate Release" `
+            -p:Platform=x64 `
+            -v:minimal `
+            -nologo `
+            -flp:logfile=msbuild-full.log`;verbosity=diagnostic
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::group::编译错误"
+            Select-String -Path msbuild-full.log -Pattern "error " | Select-Object -First 60 | ForEach-Object { $_.Line }
+            Write-Host "::endgroup::"
+            exit $LASTEXITCODE
+          }
+
+      - name: Locate binary
+        id: locate
+        shell: pwsh
+        run: |
+          $exe = "dng_sdk\targets\win\release64_x64\dng_validate.exe"
+          if (-not (Test-Path $exe)) {
+            $found = Get-ChildItem -Recurse -Filter dng_validate.exe -ErrorAction SilentlyContinue |
+                     Where-Object { $_.FullName -notmatch '\\obj\\' } | Select-Object -First 1
+            if (-not $found) { throw "未找到 dng_validate.exe" }
+            $exe = $found.FullName
+          }
+          "binary=$exe" >> $env:GITHUB_OUTPUT
+          Get-Item $exe | Format-List Name, Length, FullName, LastWriteTime
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $bin = "${{ steps.locate.outputs.binary }}"
+
+          Write-Host "--- 1) 无参数应打印版本与用法，退出码 1 ---"
+          $out = & $bin 2>&1
+          $rc = $LASTEXITCODE
+          $text = $out | Out-String
+          Write-Host $text
+          if ($rc -ne 1) { throw "无参数运行退出码应为 1，实际 $rc" }
+          if ($text -notmatch [regex]::Escape("dng_validate, version $env:DNG_SDK_VERSION")) {
+            throw "版本横幅缺失"
+          }
+
+          Write-Host "--- 2) 普通 DNG 校验 ---"
+          $out1 = & $bin sample_files\05_PGTM2_unsigned8.dng 2>&1
+          $rc1 = $LASTEXITCODE
+          ($out1 | Out-String) | Tee-Object -FilePath smoke-1.txt
+          if ($rc1 -ne 0) { throw "普通 DNG 校验退出码应为 0，实际 $rc1" }
+          if ((Get-Content smoke-1.txt -Raw) -notmatch "Validation complete") { throw "缺少 Validation complete" }
+
+          Write-Host "--- 3) JPEG XL 压缩 DNG 校验（验证 libjxl 链接与解码）---"
+          $out2 = & $bin sample_files\02_jxl_linear_raw_float.dng 2>&1
+          $rc2 = $LASTEXITCODE
+          ($out2 | Out-String) | Tee-Object -FilePath smoke-2.txt
+          if ($rc2 -ne 0) { throw "JXL DNG 校验退出码应为 0，实际 $rc2" }
+          if ((Get-Content smoke-2.txt -Raw) -notmatch "Validation complete") { throw "缺少 Validation complete" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $bin = "${{ steps.locate.outputs.binary }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $bin dist\dng_validate.exe
+          Copy-Item LICENSE.txt dist\
+          Copy-Item README.md dist\
+          (& $bin 2>&1 | Select-Object -First 5) | Out-File -Encoding utf8 dist\VERSION.txt
+          Compress-Archive -Path dist\* -DestinationPath dng_validate-windows-x64.zip -Force
+          Get-Item dng_validate-windows-x64.zip | Format-List Name, Length
+          # 上面故意以退出码 1 运行 dng_validate 取版本横幅，
+          # 必须显式归零，否则 GitHub 的 pwsh 包装器会用 LASTEXITCODE=1 判定本步失败。
+          exit 0
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dng_validate-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-log
+          path: msbuild-full.log
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # 发布：tag push 或手动填写 release_tag 时触发
+  # ==========================================================================
+  release:
+    name: Publish release
+    needs: [macos, windows]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          ls -l
+          sha256sum *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+        run: |
+          echo "发布 tag: $TAG"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/* --clobber
+          else
+            gh release create "$TAG" \
+              --title "DNG SDK $DNG_SDK_VERSION (build $DNG_SDK_BUILD) — dng_validate" \
+              --notes-file .github/release-notes.md \
+              artifacts/dng_validate-macos-universal.zip \
+              artifacts/dng_validate-windows-x64.zip \
+              artifacts/SHA256SUMS.txt
+          fi
+          gh release view "$TAG" --json url,tagName,assets
