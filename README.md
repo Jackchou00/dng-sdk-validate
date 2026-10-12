@@ -92,7 +92,7 @@ sample_files/     官方便携测试样本（仅保留小的，用于 CI 冒烟�
 
 ## 相对 Adobe 官方分发包的改动
 
-本仓库对官方 1.7.1 分发包只做了 **2 处构建文件（工程文件）修改**，未改动任何 SDK 源码逻辑：
+本仓库对官方 1.7.1 分发包做了 **3 组构建文件（工程文件）修改**，未改动任何 SDK 源码逻辑：
 
 1. **`dng_sdk/projects/win/dng_validate/dng_validate.vcxproj`**
    删除指向 `libwebp/client_projects/win/webp.vcxproj` 的 `ProjectReference`。
@@ -102,6 +102,16 @@ sample_files/     官方便携测试样本（仅保留小的，用于 CI 冒烟�
 2. **`libjxl/client_projects/win/highway.vcxproj`**
    删除对 `hwy/contrib/sort/disabled_targets.h` 的 `<ClInclude>` 引用。
    该头文件在上游 libjxl 裁剪集成时已被移除，且没有任何源码 `#include` 它（仅 IDE 文件树引用）。
+
+3. **`xmp/toolkit/XMPCore/build/CMake64Static_VC16/XMPCoreStatic.vcxproj`**
+   与 **`xmp/toolkit/XMPFiles/build/CMake64Static_VC16/XMPFilesStatic.vcxproj`**
+   显式加上 `<PlatformToolset>v143</PlatformToolset>`。
+   这两个 CMake 生成的工程原本没有指定工具集，只依赖 MSBuild 的默认值
+   `$(DefaultPlatformToolset)`；在 VS IDE 里没问题，但**直接在命令行跑 `msbuild`** 时
+   `VisualStudioVersion` 为空，MSBuild 会回退到 VS2010（v100）并报
+   `MSB8020: The build tools for Visual Studio 2010 (Platform Toolset = 'v100') cannot be found`。
+   （`dng_validate`/`libjxl`/`highway`/`brotli` 因为显式写了 `ClangCL`，不受此问题影响。）
+   若你用 VS2019，可在命令行覆盖：`-p:PlatformToolset=v142`。
 
 ---
 
@@ -131,10 +141,10 @@ xcodebuild \
 工程使用 `ClangCL` 工具集，XMP 工程用默认 MSVC 工具集）。
 
 ```bat
-:: 建议在 VS2022 的 “Developer Command Prompt / x64 Native Tools” 里执行，
-:: 或者显式指定 VS 版本 —— XMP 的两个工程没有写死 PlatformToolset，
-:: 裸跑 msbuild 时 VisualStudioVersion 为空会回退到 VS2010(v100) 并报 MSB8020。
-msbuild dng_sdk\projects\win\dng_validate.sln -m -p:Configuration="Validate Release" -p:Platform=x64 -p:VisualStudioVersion=17.0
+:: 在 VS2022 的 “Developer Command Prompt / x64 Native Tools” 里执行，
+:: 或者普通命令行 + 显式指定 VS 版本（XMP 工程已在本仓库里写死 v143，
+:: 若是 VS2019 请改成 -p:PlatformToolset=v142）
+msbuild dng_sdk\projects\win\dng_validate.sln -m -p:Configuration="Validate Release" -p:Platform=x64
 :: 产物：dng_sdk\targets\win\release64_x64\dng_validate.exe
 ```
 

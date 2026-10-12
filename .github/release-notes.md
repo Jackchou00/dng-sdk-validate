@@ -30,6 +30,7 @@ dng_validate -csP3 -16 -tif out photo.dng
 
 ## 内容来源
 
-本 Release 由仓库源码构建，源码为 Adobe DNG SDK 1.7.1 官方分发包，仅做了 2 处工程文件修复
-（移除指向不存在的 `libwebp` 工程的悬空引用、移除已被裁剪的 `disabled_targets.h` 文件树引用），
+本 Release 由仓库源码构建，源码为 Adobe DNG SDK 1.7.1 官方分发包，仅做了 3 组工程文件修复
+（移除指向不存在的 `libwebp` 工程的悬空引用、移除已被裁剪的 `disabled_targets.h` 文件树引用、
+为两个 XMP 工程显式指定 `PlatformToolset=v143` 以修复命令行 msbuild 的 MSB8020/v100 回退），
 未改动任何 SDK 源码逻辑。详见仓库 README。

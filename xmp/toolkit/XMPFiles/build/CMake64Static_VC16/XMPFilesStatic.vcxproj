@@ -46,6 +46,14 @@
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <!-- 修复 MSB8020：CMake 生成的该工程未指定 PlatformToolset，只依赖 MSBuild 的默认值
+       $(DefaultPlatformToolset)。在 VS IDE 内该默认值正常，但在命令行直接运行 msbuild 时
+       VisualStudioVersion 为空，MSBuild 会回退到 VS2010 (v100) 并报
+       "The build tools for Visual Studio 2010 (Platform Toolset = 'v100') cannot be found"。
+       这里显式指定 VS2022 工具集；仍可用命令行覆盖，例如 VS2019 下传 -p:PlatformToolset=v142。 -->
+  <PropertyGroup>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
