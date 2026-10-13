@@ -1,50 +1,26 @@
-# Adobe DNG SDK 1.7.1 — `dng_validate` 预编译版
+# Adobe DNG SDK 1.7.1 — `dng_validate`
 
-本仓库收录 **Adobe DNG SDK 1.7.1（build 2724）** 的完整源码（含 Adobe XMP SDK、libjxl、libjpeg），
-并附带 GitHub Actions 工作流，自动为 **macOS** 与 **Windows** 构建官方命令行工具 **`dng_validate`**，
-产物发布在 [Releases](../../releases) 页面，方便直接下载使用，无需自己配环境编译。
+This repo vendors Adobe DNG SDK 1.7.1 and builds the `dng_validate` command-line tool for macOS (universal) and Windows (x64) via GitHub Actions. 
 
-> English summary: this repo vendors Adobe DNG SDK 1.7.1 and builds the `dng_validate`
-> command-line tool for macOS (universal) and Windows (x64) via GitHub Actions.
-> Download the prebuilt binaries from the Releases page.
+Download the prebuilt binaries from the Releases page.
 
----
-
-## 下载
-
-| 平台 | 文件 | 说明 |
-|---|---|---|
-| macOS | `dng_validate-macos-universal.zip` | 通用二进制（arm64 + x86_64），部署目标 macOS 11.0+ |
-| Windows | `dng_validate-windows-x64.zip` | x64，静态链接 C 运行时（`/MT`），**无需**安装 VC++ Redistributable |
-| 校验 | `SHA256SUMS.txt` | 上述文件的 SHA-256 |
-
-每个 zip 内含可执行文件、`LICENSE.txt`、本 README 与 `VERSION.txt`。
-
-macOS 上若提示来源未知，可执行：
+## Usage
 
 ```bash
-xattr -d com.apple.quarantine ./dng_validate   # 或 系统设置 → 隐私与安全性 → 仍要打开
+dng_validate photo.dng
 ```
 
----
-
-## 用法
+or
 
 ```bash
-# 校验一个（或一批）DNG / 相机原始文件，并打印元数据
-dng_validate photo.dng
-
-# 详细输出
 dng_validate -v photo.dng
 
-# 转成 TIF / DNG
 dng_validate -tif out photo.dng      # 生成 out.tif
 dng_validate -dng out photo.dng      # 生成 out.dng
 
-# 指定输出色彩空间与位深
 dng_validate -csP3 -16 -tif out photo.dng
 
-# 写出中间处理阶段的图像
+# image in different stages.
 dng_validate -1 s1 -2 s2 -3 s3 photo.dng
 ```
 
@@ -67,26 +43,6 @@ dng_validate -1 s1 -2 s2 -3 s3 photo.dng
 
 退出码：`0` 表示校验完成，非 `0`（通常 ≥100）表示出错，具体值对应 SDK 的 `dng_error_code`。
 不带参数运行会打印版本与用法，退出码为 `1`。
-
----
-
-## 仓库内容
-
-```
-dng_sdk/          DNG SDK 源码 + 官方 Xcode / Visual Studio 工程
-libjpeg/          libjpeg（JPEG 压缩支持）
-libjxl/           libjxl + brotli + highway + skcms（JPEG XL 支持）
-xmp/              Adobe XMP SDK + expat / zlib / uuid（元数据支持）
-sample_files/     官方便携测试样本（仅保留小的，用于 CI 冒烟与快速试用）
-.github/workflows/build.yml   构建与发布流水线
-```
-
-**未纳入 git 追踪**（仍保留在源码分发包中，只是不入库）：
-
-- `sample_files/` 中 8 个体积较大的样本（`01`、`03`、`04`、`09`–`13`，合计约 59 MB）
-- 两份 PDF 文档（DNG 规范 1.7.1、Getting Started with DNG 1.7.1）
-- `libjxl/libjxl/third_party/brotli/js/`（约 16 MB 的 JS 测试数据，构建零引用）
-- `libjxl/prune.txt`、`libjxl/INTEGRATION_RUNBOOK.md`（Adobe 内部文件）
 
 ---
 
