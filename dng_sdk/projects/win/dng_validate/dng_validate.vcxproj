@@ -406,8 +406,8 @@
     <ProjectReference Include="..\..\..\..\libjxl\client_projects\win\jxl.vcxproj">
       <Project>{9a2f1226-f015-4a4d-988c-acc96576a556}</Project>
     </ProjectReference>
-    <!-- libwebp 不包含在本 SDK 分发包中，dng_validate 也不引用 webp 符号，
-         故移除该悬空 ProjectReference（否则 MSBuild 报 MSB3202 无法构建）。 -->
+    <!-- libwebp is not included in this SDK distribution, and dng_validate does not use webp symbols.
+         Omit the dangling ProjectReference to avoid MSBuild error MSB3202. -->
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

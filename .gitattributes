@@ -1,18 +1,17 @@
-# 第三方源码与工程文件（Adobe DNG SDK / XMP SDK / libjxl / libjpeg）保持原样：
-# 关闭行尾自动转换，确保仓库内容与 Adobe 官方分发包字节一致，方便日后 diff 上游。
+# Disable line-ending conversion for vendored source and project files to preserve upstream formatting.
 * -text
 
-# 本仓库自己新增的文本文件统一使用 LF。
+# Use LF for text files maintained by this repository.
 README.md       text eol=lf
 .gitignore      text eol=lf
 .gitattributes  text eol=lf
 .github/**      text eol=lf
 
-# 二进制资源：不做 diff，也不做任何转换。
-*.dng   -text -diff
-*.pdf   -text -diff
-*.a     -text -diff
-*.lib   -text -diff
-*.tar   -text -diff
-*.tar.gz  -text -diff
-*.tar.bz2 -text -diff
+# Binary assets: disable diff and text conversion.
+*.dng      -text -diff
+*.pdf      -text -diff
+*.a        -text -diff
+*.lib      -text -diff
+*.tar      -text -diff
+*.tar.gz   -text -diff
+*.tar.bz2  -text -diff

@@ -1,9 +1,7 @@
-# ===========================================================================
-# Adobe DNG SDK 1.7.1 —— 本仓库只追踪构建 dng_validate 所需的源码与工程文件
-# 被忽略的文件全部保留在本地磁盘，只是不进入 git。
-# ===========================================================================
+# Adobe DNG SDK 1.7.1; track only source and project files needed to build dng_validate.
+# Ignored files remain on disk but are not tracked by Git.
 
-# --- 体积过大的官方测试样本（只保留 CI 冒烟测试用的小样本）-----------------
+# Large official test samples (keep only the small CI smoke-test samples)
 sample_files/01_jxl_linear_raw_integer.dng
 sample_files/03_jxl_bayer_raw_integer.dng
 sample_files/04_PGTM2_per_profile.dng
@@ -13,15 +11,15 @@ sample_files/11_ImageSequenceInfo_3_of_3.dng
 sample_files/12_ImageStats_WeightedAverage.dng
 sample_files/13_ImageStats_Several.dng
 
-# --- PDF 文档（体积大，规范请从 Adobe 官网获取）----------------------------
+# Large PDF documents
 *.pdf
 
-# --- 与构建无关的第三方测试数据 / 内部文件 ---------------------------------
+# Third-party test data and internal files not needed for the build
 libjxl/libjxl/third_party/brotli/js/
 libjxl/prune.txt
 libjxl/INTEGRATION_RUNBOOK.md
 
-# --- 构建产物与中间文件 -----------------------------------------------------
+# Build outputs and intermediate files
 dng_sdk/targets/
 dng_sdk/projects/mac/build/
 dng_sdk/projects/win/dng_validate/Validate*/
@@ -42,7 +40,7 @@ xmp/toolkit/XMPFiles/build/*/ARM64_*/
 *.dSYM/
 DerivedData/
 
-# --- 编辑器 / 操作系统 ------------------------------------------------------
+# Editors and operating systems
 .DS_Store
 xcuserdata/
 *.xcuserstate
